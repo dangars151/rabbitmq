@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"rabbitmq/utils"
+	"time"
 )
 
 func main() {
-	rabbitMQ := utils.GetRabbitMQ("hello", false)
+	rabbitMQ := utils.GetRabbitMQ("task_queue", true)
 	defer rabbitMQ.Conn.Close()
 
 	ch := rabbitMQ.Chan
@@ -14,10 +16,17 @@ func main() {
 
 	q := rabbitMQ.Queue
 
+	err := ch.Qos(
+		1,     // prefetch count
+		0,     // prefetch size
+		false, // global
+	)
+	utils.FailOnError(err, "Failed to set QoS")
+
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
-		true,   // auto-ack
+		false,  // auto-ack
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait
@@ -30,6 +39,12 @@ func main() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
+			dotCount := bytes.Count(d.Body, []byte("."))
+			log.Print("time.Sleep ", dotCount, "s")
+			t := time.Duration(dotCount)
+			time.Sleep(t * time.Second)
+			log.Printf("Done")
+			d.Ack(false)
 		}
 	}()
 

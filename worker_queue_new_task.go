@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"rabbitmq/utils"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-	rabbitMQ := utils.GetRabbitMQ("hello", false)
+	rabbitMQ := utils.GetRabbitMQ("task_queue", true)
 	defer rabbitMQ.Conn.Close()
 
 	ch := rabbitMQ.Chan
@@ -21,16 +22,17 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body := "Hello World!"
+	body := utils.BodyFrom(os.Args)
 	err := ch.PublishWithContext(ctx,
 		"",     // exchange
 		q.Name, // routing key
 		false,  // mandatory
-		false,  // immediate
+		false,
 		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(body),
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "text/plain",
+			Body:         []byte(body),
 		})
 	utils.FailOnError(err, "Failed to publish a message")
-	log.Printf(" [x] Sent %s\n", body)
+	log.Printf(" [x] Sent %s", body)
 }

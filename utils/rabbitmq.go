@@ -8,7 +8,7 @@ type RabbitMQ struct {
 	Queue amqp.Queue
 }
 
-func GetRabbitMQ(queueName string) *RabbitMQ {
+func GetRabbitMQ(queueName string, durable bool) *RabbitMQ {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	FailOnError(err, "Failed to connect to RabbitMQ")
 
@@ -17,7 +17,7 @@ func GetRabbitMQ(queueName string) *RabbitMQ {
 
 	q, err := ch.QueueDeclare(
 		queueName, // name
-		false,     // durable
+		durable,   // durable
 		false,     // delete when unused
 		false,     // exclusive
 		false,     // no-wait
